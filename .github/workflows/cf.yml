@@ -1,8 +1,7 @@
-name: cf workers
+name: Deploy Cloudflare Workers
 
 on:
   workflow_dispatch:
-
   push:
     branches:
       - master
@@ -15,8 +14,45 @@ jobs:
     runs-on: ubuntu-latest
     environment: cf
     steps:
-      - uses: actions/checkout@v4
-      - name: deploy
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Use a Node.js version compatible with Wrangler
+
+      - name: Install Wrangler
+        run: npm install -g wrangler
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config
+
+      - name: Install worker-build
+        run: cargo install worker-build
+
+      - name: Build Worker
+        run: worker-build --release
+        working-directory: ./ # Adjust to your project directory if needed
+
+      - name: Deploy to Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }} # Add if required by wrangler.toml
+          command: publish # Explicitly specify the publish command
+        env:
+          RUST_BACKTRACE: full # Enable detailed Rust error traces
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrangler-logs
+          path: /home/runner/.config/.wrangler/logs/
