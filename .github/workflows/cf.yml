@@ -20,7 +20,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18' # Use a Node.js version compatible with Wrangler
+          node-version: '18'
 
       - name: Install Wrangler
         run: npm install -g wrangler
@@ -39,16 +39,13 @@ jobs:
 
       - name: Build Worker
         run: worker-build --release
-        working-directory: ./ # Adjust to your project directory if needed
+        working-directory: ./ # Sesuaikan jika proyek ada di subdirektori
 
       - name: Deploy to Cloudflare
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }} # Add if required by wrangler.toml
-          command: publish # Explicitly specify the publish command
-        env:
-          RUST_BACKTRACE: full # Enable detailed Rust error traces
+          command: publish
 
       - name: Upload logs on failure
         if: failure()
