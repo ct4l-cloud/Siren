@@ -1,13 +1,7 @@
 name: Deploy Cloudflare Workers
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-    paths-ignore:
-      - 'README.md'
-      - 'LICENSE.md'
+  workflow_dispatch:   # hanya manual, lewat tombol "Run workflow" di GitHub
 
 jobs:
   deploy:
@@ -30,16 +24,23 @@ jobs:
         with:
           toolchain: stable
           override: true
+          target: wasm32-unknown-unknown
+          components: rustfmt, clippy
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config
+        run: sudo apt-get update && sudo apt-get install -y libssl-dev pkg-config binaryen
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
 
       - name: Install worker-build
         run: cargo install worker-build
 
       - name: Build Worker
         run: worker-build --release
-        working-directory: ./ # Sesuaikan jika proyek ada di subdirektori
+        working-directory: ./
+        env:
+          RUST_BACKTRACE: full
 
       - name: Deploy to Cloudflare
         uses: cloudflare/wrangler-action@v3
@@ -52,4 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: wrangler-logs
-          path: /home/runner/.config/.wrangler/logs/
+          path: |
+            /home/runner/.config/.wrangler/logs/
+            /home/runner/.cache/.wasm-pack/
+            /home/runner/work/Siren/Siren/build/
